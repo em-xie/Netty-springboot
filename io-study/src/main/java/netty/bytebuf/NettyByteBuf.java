@@ -24,6 +24,9 @@ public class NettyByteBuf {
         }
         System.out.println("byteBuf=" + byteBuf);
 
-
+//        byteBuf.readableBytes();  剩余索引
+//        byteBuf.markReaderIndex(); 标记索引
     }
+
+
 }

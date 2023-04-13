@@ -10,6 +10,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.DelimiterBasedFrameDecoder;
+import io.netty.handler.codec.FixedLengthFrameDecoder;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import netty.chat.handler.DiscardServerHandler;
@@ -41,6 +42,8 @@ public class DiscardServer {
                         @Override
                         public void initChannel(SocketChannel ch) throws Exception {
                             Charset gbk = Charset.forName("utf-8");
+
+                            //ch.pipeline().addLast(new FixedLengthFrameDecoder(8));
                             ch.pipeline().addLast(new DelimiterBasedFrameDecoder(1024, Unpooled.copiedBuffer("_"
                                     .getBytes())));
                             ch.pipeline().addLast("encoder", new StringEncoder(gbk));//out
