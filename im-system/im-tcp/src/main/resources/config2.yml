@@ -5,11 +5,17 @@ lim:
   workThreadSize: 8
   heartBeatTime: 20000 #心跳超时时间 单位毫秒
   brokerId: 1001
-
+  #  loginModel: 3
+  #  logicUrl: http://127.0.0.1:8000/v1
+  #  #  *                多端同步模式：1 只允许一端在线，手机/电脑/web 踢掉除了本client+imel的设备
+  #  #  *                            2 允许手机/电脑的一台设备 + web在线 踢掉除了本client+imel的非web端设备
+  #  #  *                            3 允许手机和电脑单设备 + web 同时在线 踢掉非本client+imel的同端设备
+  #  #  *                            4 允许所有端多设备登录 不踢任何设备
+  #
   redis:
     mode: single # 单机模式：single 哨兵模式：sentinel 集群模式：cluster
     database: 0
-    password:
+    password: 123456
     timeout: 3000 # 超时时间
     poolMinIdle: 8 #最小空闲数
     poolConnTimeout: 3000 # 连接超时时间(毫秒)

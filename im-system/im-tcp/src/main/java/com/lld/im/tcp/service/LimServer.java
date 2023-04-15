@@ -1,7 +1,9 @@
 package com.lld.im.tcp.service;
 
 import com.lld.im.codec.MessageDecoder;
+import com.lld.im.codec.MessageEncoder;
 import com.lld.im.codec.config.BootstrapConfig;
+import com.lld.im.tcp.handler.HeartBeatHandler;
 import com.lld.im.tcp.handler.NettyServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
@@ -9,6 +11,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +41,12 @@ public class LimServer {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ch.pipeline().addLast(new MessageDecoder());
-                        ch.pipeline().addLast(new NettyServerHandler());
+                        ch.pipeline().addLast(new MessageEncoder());
+                        ch.pipeline().addLast(new IdleStateHandler(
+                                0,0,
+                                1));
+                        ch.pipeline().addLast(new HeartBeatHandler(config.getHeartBeatTime()));
+                        ch.pipeline().addLast(new NettyServerHandler(config.getBrokerId()));
                     }
                 });
 
