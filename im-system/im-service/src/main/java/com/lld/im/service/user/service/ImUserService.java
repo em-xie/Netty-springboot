@@ -23,4 +23,5 @@ public interface ImUserService {
     public ResponseVO modifyUserInfo(ModifyUserInfoReq req);
 
 
+    public ResponseVO login();
 }

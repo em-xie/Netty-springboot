@@ -1,7 +1,11 @@
 package com.lld.im.service.friendship.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.lld.im.codec.pack.friendship.AddFriendGroupMemberPack;
+import com.lld.im.codec.pack.friendship.DeleteFriendGroupMemberPack;
 import com.lld.im.common.ResponseVO;
+import com.lld.im.common.enums.command.FriendshipEventCommand;
+import com.lld.im.common.model.ClientInfo;
 import com.lld.im.service.friendship.dao.ImFriendShipGroupEntity;
 import com.lld.im.service.friendship.dao.ImFriendShipGroupMemberEntity;
 import com.lld.im.service.friendship.dao.mapper.ImFriendShipGroupMemberMapper;
@@ -11,6 +15,7 @@ import com.lld.im.service.friendship.service.ImFriendShipGroupMemberService;
 import com.lld.im.service.friendship.service.ImFriendShipGroupService;
 import com.lld.im.service.user.dao.ImUserDataEntity;
 import com.lld.im.service.user.service.ImUserService;
+import com.lld.im.service.utils.MessageProducer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +43,9 @@ public class ImFriendShipGroupMemberServiceImpl
     @Autowired
     ImFriendShipGroupMemberService thisService;
 
+    @Autowired
+    MessageProducer messageProducer;
+
     @Override
     @Transactional
     public ResponseVO addGroupMember(AddFriendShipGroupMemberReq req) {
@@ -58,6 +66,15 @@ public class ImFriendShipGroupMemberServiceImpl
                 }
             }
         }
+
+        //Long seq = imFriendShipGroupService.updateSeq(req.getFromId(), req.getGroupName(), req.getAppId());
+        AddFriendGroupMemberPack pack = new AddFriendGroupMemberPack();
+        pack.setFromId(req.getFromId());
+        pack.setGroupName(req.getGroupName());
+        pack.setToIds(successId);
+        //pack.setSequence(seq);
+        messageProducer.sendToUserExceptClient(req.getFromId(), FriendshipEventCommand.FRIEND_GROUP_MEMBER_ADD,
+                pack,new ClientInfo(req.getAppId(),req.getClientType(),req.getImei()));
 
         return ResponseVO.successResponse(successId);
     }
@@ -80,6 +97,15 @@ public class ImFriendShipGroupMemberServiceImpl
                 }
             }
         }
+
+        //Long seq = imFriendShipGroupService.updateSeq(req.getFromId(), req.getGroupName(), req.getAppId());
+        DeleteFriendGroupMemberPack pack = new DeleteFriendGroupMemberPack();
+        pack.setFromId(req.getFromId());
+        pack.setGroupName(req.getGroupName());
+        pack.setToIds(list);
+       // pack.setSequence(seq);
+        messageProducer.sendToUserExceptClient(req.getFromId(), FriendshipEventCommand.FRIEND_GROUP_MEMBER_DELETE,
+                pack,new ClientInfo(req.getAppId(),req.getClientType(),req.getImei()));
         return ResponseVO.successResponse(list);
     }
 

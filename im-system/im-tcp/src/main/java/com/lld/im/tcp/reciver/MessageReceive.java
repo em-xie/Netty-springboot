@@ -3,6 +3,8 @@ package com.lld.im.tcp.reciver;
 import com.alibaba.fastjson.JSONObject;
 import com.lld.im.codec.proto.MessagePack;
 import com.lld.im.common.constant.Constants;
+import com.lld.im.tcp.reciver.process.BaseProcess;
+import com.lld.im.tcp.reciver.process.ProcessFactory;
 import com.lld.im.tcp.utils.MqFactory;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -38,8 +40,22 @@ public class MessageReceive{
                         @Override
                         public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                             //处理服务端消息
-                            String s = new String(body);
-                            log.info(s);
+                            try {
+                                String msgStr = new String(body);
+                                log.info(msgStr);
+                                MessagePack messagePack =
+                                        JSONObject.parseObject(msgStr, MessagePack.class);
+                                BaseProcess messageProcess = ProcessFactory
+                                        .getMessageProcess(messagePack.getCommand());
+                                messageProcess.process(messagePack);
+                                //这条消息的标记符，是否批量
+                                channel.basicAck(envelope.getDeliveryTag(),false);
+
+                            }catch (Exception e){
+                                e.printStackTrace();
+                                //不重回队列
+                                channel.basicNack(envelope.getDeliveryTag(),false,false);
+                            }
                         }
                     }
             );

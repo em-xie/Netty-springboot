@@ -1,23 +1,33 @@
 package com.lld.im.service.group.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.lld.im.codec.pack.group.CreateGroupPack;
+import com.lld.im.codec.pack.group.DestroyGroupPack;
+import com.lld.im.codec.pack.group.UpdateGroupInfoPack;
 import com.lld.im.common.ResponseVO;
+import com.lld.im.common.config.AppConfig;
+import com.lld.im.common.constant.Constants;
 import com.lld.im.common.enums.GroupErrorCode;
 import com.lld.im.common.enums.GroupMemberRoleEnum;
 import com.lld.im.common.enums.GroupStatusEnum;
 import com.lld.im.common.enums.GroupTypeEnum;
+import com.lld.im.common.enums.command.GroupEventCommand;
 import com.lld.im.common.exception.ApplicationException;
 import com.lld.im.common.model.ClientInfo;
 import com.lld.im.service.group.dao.ImGroupEntity;
 import com.lld.im.service.group.dao.mapper.ImGroupMapper;
+import com.lld.im.service.group.model.callback.DestroyGroupCallbackDto;
 import com.lld.im.service.group.model.req.*;
 import com.lld.im.service.group.model.resp.GetGroupResp;
 import com.lld.im.service.group.model.resp.GetJoinedGroupResp;
 import com.lld.im.service.group.model.resp.GetRoleInGroupResp;
 import com.lld.im.service.group.service.ImGroupMemberService;
 import com.lld.im.service.group.service.ImGroupService;
+import com.lld.im.service.utils.CallbackService;
+import com.lld.im.service.utils.GroupMessageProducer;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +53,14 @@ public class ImGroupServiceImpl implements ImGroupService {
     @Autowired
     ImGroupMemberService groupMemberService;
 
+    @Autowired
+    AppConfig appConfig;
+
+    @Autowired
+    CallbackService callbackService;
+
+    @Autowired
+    GroupMessageProducer groupMessageProducer;
 
     @Override
     public ResponseVO importGroup(ImportGroupReq req) {
@@ -126,11 +144,22 @@ public class ImGroupServiceImpl implements ImGroupService {
             groupMemberService.addGroupMember(req.getGroupId(), req.getAppId(), dto);
         }
 
+        //回调
+        if(appConfig.isCreateGroupAfterCallback()){
+            callbackService.callback(req.getAppId(), Constants.CallbackCommand.CreateGroupAfter,
+                    JSONObject.toJSONString(imGroupEntity));
+        }
+
+        CreateGroupPack createGroupPack = new CreateGroupPack();
+        BeanUtils.copyProperties(imGroupEntity, createGroupPack);
+        groupMessageProducer.producer(req.getOperater(), GroupEventCommand.CREATED_GROUP, createGroupPack
+                , new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()));
+
         return ResponseVO.successResponse();
     }
 
     /**
-     * @param [req]
+     * @param
      * @return com.lld.im.common.ResponseVO
      * @description 修改群基础信息，如果是后台管理员调用，则不检查权限，如果不是则检查权限，如果是私有群（微信群）任何人都可以修改资料，公开群只有管理员可以修改
      * 如果是群主或者管理员可以修改其他信息。
@@ -183,11 +212,22 @@ public class ImGroupServiceImpl implements ImGroupService {
             throw new ApplicationException(GroupErrorCode.THIS_OPERATE_NEED_MANAGER_ROLE);
         }
 
+        if(appConfig.isModifyGroupAfterCallback()){
+            callbackService.callback(req.getAppId(),Constants.CallbackCommand.UpdateGroupAfter,
+                    JSONObject.toJSONString(imGroupDataMapper.selectOne(query)));
+        }
+
+        UpdateGroupInfoPack pack = new UpdateGroupInfoPack();
+        BeanUtils.copyProperties(req, pack);
+        groupMessageProducer.producer(req.getOperater(), GroupEventCommand.UPDATED_GROUP,
+                pack, new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()));
+
+
         return ResponseVO.successResponse();
     }
 
     /**
-     * @param [req]
+     * @param
      * @return com.lld.im.common.ResponseVO
      * @description 获取用户加入的群组
      * @author chackylee
@@ -229,7 +269,7 @@ public class ImGroupServiceImpl implements ImGroupService {
 
 
     /**
-     * @param [req]
+     * @param req
      * @return com.lld.im.common.ResponseVO
      * @description 解散群组，只支持后台管理员和群主解散
      * @author chackylee
@@ -270,6 +310,20 @@ public class ImGroupServiceImpl implements ImGroupService {
         if (update1 != 1) {
             throw new ApplicationException(GroupErrorCode.UPDATE_GROUP_BASE_INFO_ERROR);
         }
+
+        if(appConfig.isModifyGroupAfterCallback()){
+            DestroyGroupCallbackDto dto = new DestroyGroupCallbackDto();
+            dto.setGroupId(req.getGroupId());
+            callbackService.callback(req.getAppId()
+                    ,Constants.CallbackCommand.DestoryGroupAfter,
+                    JSONObject.toJSONString(dto));
+        }
+        DestroyGroupPack pack = new DestroyGroupPack();
+       // pack.setSequence(seq);
+        pack.setGroupId(req.getGroupId());
+        groupMessageProducer.producer(req.getOperater(),
+                GroupEventCommand.DESTROY_GROUP, pack, new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()));
+
         return ResponseVO.successResponse();
     }
 
