@@ -96,7 +96,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             SessionSocketHolder.put(message.getMessageHeader().getAppId(),
                     loginPack.getUserId(),message.getMessageHeader().getClientType(),
                     message.getMessageHeader().getImei(),
-                    (NioSocketChannel) channelHandlerContext);
+                    (NioSocketChannel) channelHandlerContext.channel());
 
             //发送客户端消息
             UserClientDto userClientDto = new UserClientDto();
