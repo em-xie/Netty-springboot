@@ -5,6 +5,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.lld.im.common.constant.Constants;
 import com.lld.im.common.enums.command.MessageCommand;
 import com.lld.im.common.model.message.MessageContent;
+import com.lld.im.common.model.message.MessageReadedContent;
+import com.lld.im.common.model.message.MessageReciveAckContent;
+import com.lld.im.service.message.service.MessageSyncService;
 import com.lld.im.service.message.service.P2PMessageService;
 import com.rabbitmq.client.Channel;
 import org.slf4j.Logger;
@@ -30,7 +33,8 @@ import java.util.Map;
 public class ChatOperateReceiver {
     @Autowired
     P2PMessageService p2PMessageService;
-
+    @Autowired
+    MessageSyncService messageSyncService;
     private static Logger logger = LoggerFactory.getLogger(ChatOperateReceiver.class);
     @RabbitListener(
             bindings = @QueueBinding(
@@ -53,6 +57,17 @@ public class ChatOperateReceiver {
                 MessageContent messageContent
                         = jsonObject.toJavaObject(MessageContent.class);
                 p2PMessageService.process(messageContent);
+                channel.basicAck(deliveryTag, false);
+            }else if(command.equals(MessageCommand.MSG_RECIVE_ACK.getCommand())){
+                //消息接收确认
+                MessageReciveAckContent messageContent
+                        = jsonObject.toJavaObject(MessageReciveAckContent.class);
+                messageSyncService.receiveMark(messageContent);
+            }else if(command.equals(MessageCommand.MSG_READED.getCommand())){
+                //消息接收确认
+                MessageReadedContent messageContent
+                        = jsonObject.toJavaObject(MessageReadedContent.class);
+                messageSyncService.readMark(messageContent);
             }
         }catch (Exception e){
             logger.error("处理消息出现异常：{}", e.getMessage());

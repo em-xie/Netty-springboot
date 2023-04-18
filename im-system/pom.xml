@@ -21,6 +21,7 @@
         <module>im-common</module>
         <module>im-codec</module>
         <module>im-tcp</module>
+        <module>im-message-store</module>
     </modules>
 
     <properties>

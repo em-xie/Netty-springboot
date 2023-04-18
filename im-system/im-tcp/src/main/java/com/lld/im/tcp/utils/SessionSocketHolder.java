@@ -9,6 +9,7 @@ import com.lld.im.tcp.redis.RedisManger;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.AttributeKey;
 import jodd.util.StringUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 
@@ -100,13 +101,12 @@ public  class SessionSocketHolder {
         SessionSocketHolder.remove(appId,userId,clientType,imei);
         RedissonClient redissonClient = RedisManger.getRedissonClient();
         RMap<String, String> map = redissonClient.getMap(appId + Constants.RedisConstants.UserSessionConstants + userId);
-        String session = map.get(clientType.toString());
-        if(!StringUtil.isBlank(session))
-        {
-            UserSession userSession = JSONObject.parseObject(session, UserSession.class);
-            userSession.setConnectState(ImConnectStatusEnum.OFFLINE_STATUS.getCode());
-            map.put(clientType +":"+imei,JSONObject.toJSONString(userSession));
+        String sessionStr = map.get(clientType.toString()+":" + imei);
 
+        if(!StringUtils.isBlank(sessionStr)){
+            UserSession userSession = JSONObject.parseObject(sessionStr, UserSession.class);
+            userSession.setConnectState(ImConnectStatusEnum.OFFLINE_STATUS.getCode());
+            map.put(clientType.toString()+":"+imei,JSONObject.toJSONString(userSession));
         }
         nioSocketChannel.close();
     }

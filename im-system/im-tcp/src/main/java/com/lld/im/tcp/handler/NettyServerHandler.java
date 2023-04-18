@@ -1,18 +1,30 @@
 package com.lld.im.tcp.handler;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.lld.im.codec.pack.LoginPack;
+import com.lld.im.codec.pack.message.ChatMessageAck;
 import com.lld.im.codec.proto.Message;
+import com.lld.im.codec.proto.MessagePack;
+import com.lld.im.common.ResponseVO;
 import com.lld.im.common.constant.Constants;
 import com.lld.im.common.enums.ImConnectStatusEnum;
+import com.lld.im.common.enums.command.GroupEventCommand;
+import com.lld.im.common.enums.command.MessageCommand;
 import com.lld.im.common.enums.command.SystemCommand;
 import com.lld.im.common.model.UserClientDto;
 import com.lld.im.common.model.UserSession;
+import com.lld.im.common.model.message.CheckSendMessageReq;
+import com.lld.im.tcp.feign.FeignMessageService;
 import com.lld.im.tcp.publish.MqMessageProducer;
 import com.lld.im.tcp.redis.RedisManger;
 import com.lld.im.tcp.service.LimServer;
 import com.lld.im.tcp.utils.SessionSocketHolder;
+import feign.Feign;
+import feign.Request;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -33,10 +45,18 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
     private final static Logger logger = LoggerFactory.getLogger(LimServer.class);
 
     private Integer brokerId;
+    private String logicUrl;
 
-    public NettyServerHandler(Integer brokerId) {
+    public NettyServerHandler(Integer brokerId,String logicUrl) {
         this.brokerId = brokerId;
+        feignMessageService = Feign.builder()
+                .encoder(new JacksonEncoder())
+                .decoder(new JacksonDecoder())
+                .options(new Request.Options(1000, 3500))//设置超时时间
+                .target(FeignMessageService.class, logicUrl);
     }
+
+    private FeignMessageService feignMessageService;
 
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, Message message) throws Exception {
@@ -93,6 +113,44 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
         } else if (command== SystemCommand.PING.getCommand()) {
            channelHandlerContext.channel().attr(AttributeKey.valueOf(Constants.ReadTime)).set(System.currentTimeMillis());
 
+        } else if(command == MessageCommand.MSG_P2P.getCommand()
+                || command == GroupEventCommand.MSG_GROUP.getCommand()) {
+            try {
+                String toId = "";
+                CheckSendMessageReq req = new CheckSendMessageReq();
+                req.setAppId(message.getMessageHeader().getAppId());
+                req.setCommand(message.getMessageHeader().getCommand());
+                JSONObject jsonObject = JSON.parseObject(JSONObject.toJSONString(message.getMessagePack()));
+                String fromId = jsonObject.getString("fromId");
+                if(command == MessageCommand.MSG_P2P.getCommand()){
+                    toId = jsonObject.getString("toId");
+                }else {
+                    toId = jsonObject.getString("groupId");
+                }
+                req.setToId(toId);
+                req.setFromId(fromId);
+
+                ResponseVO responseVO = feignMessageService.checkSendMessage(req);
+                if(responseVO.isOk()){
+                    MqMessageProducer.sendMessage(message,command);
+                }else{
+                    Integer ackCommand = 0;
+                    if(command == MessageCommand.MSG_P2P.getCommand()){
+                        ackCommand = MessageCommand.MSG_ACK.getCommand();
+                    }else {
+                        ackCommand = GroupEventCommand.GROUP_MSG_ACK.getCommand();
+                    }
+
+                    ChatMessageAck chatMessageAck = new ChatMessageAck(jsonObject.getString("messageId"));
+                    responseVO.setData(chatMessageAck);
+                    MessagePack<ResponseVO> ack = new MessagePack<>();
+                    ack.setData(responseVO);
+                    ack.setCommand(ackCommand);
+                    channelHandlerContext.channel().writeAndFlush(ack);
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+            }
         }else {
             MqMessageProducer.sendMessage(message,command);
         }

@@ -61,9 +61,12 @@ public class LimWebSocketServer {
                         pipeline.addLast(new WebSocketServerProtocolHandler("/ws"));
                         pipeline.addLast(new WebSocketMessageDecoder());
                         pipeline.addLast(new WebSocketMessageEncoder());
-                        pipeline.addLast(new NettyServerHandler(config.getBrokerId()));
+                        pipeline.addLast(new NettyServerHandler(config.getBrokerId(),config.getLogicUrl()));
                     }
-                });
+                });// 服务端可连接队列大小
+// 参数表示允许重复使用本地地址和端口
+// 是否禁用Nagle算法 简单点说是否批量发送数据 true关闭 false开启。 开启的话可以减少一定的网络开销，但影响消息实时性
+// 保活开关2h没有数据服务端会发送心跳包
     }
 
     public void start()

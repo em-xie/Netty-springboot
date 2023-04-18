@@ -1,14 +1,11 @@
-package com.lld.im.service.group.mq;
+package com.lld.message.mq;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.TypeReference;
 import com.lld.im.common.constant.Constants;
-import com.lld.im.common.enums.command.GroupEventCommand;
-import com.lld.im.common.model.message.GroupChatMessageContent;
-import com.lld.im.common.model.message.MessageReadedContent;
-import com.lld.im.service.group.service.GroupMessageService;
-import com.lld.im.service.message.service.MessageSyncService;
+import com.lld.message.dao.ImMessageBodyEntity;
+import com.lld.message.model.DoStoreP2PMessageDto;
+import com.lld.message.service.StoreMessageService;
 import com.rabbitmq.client.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,30 +18,26 @@ import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
 /**
- * @作者：xie
- * @时间：2023/4/17 10:35
+ * @description:
+ * @author: lld
+ * @version: 1.0
  */
-@Component
-public class GroupChatOperateReceiver {
-    private static Logger logger = LoggerFactory.getLogger(GroupChatOperateReceiver.class);
-
-    //    @Autowired
-//    P2PMessageService p2PMessageService;
-    @Autowired
-    GroupMessageService groupMessageService;
+@Service
+public class StroeP2PMessageReceiver {
+    private static Logger logger = LoggerFactory.getLogger(StroeP2PMessageReceiver.class);
 
     @Autowired
-    MessageSyncService messageSyncService;
+    StoreMessageService storeMessageService;
 
     @RabbitListener(
             bindings = @QueueBinding(
-                    value = @Queue(value = Constants.RabbitConstants.Im2GroupService,durable = "true"),
-                    exchange = @Exchange(value = Constants.RabbitConstants.Im2GroupService,durable = "true")
+                    value = @Queue(value = Constants.RabbitConstants.StoreP2PMessage,durable = "true"),
+                    exchange = @Exchange(value = Constants.RabbitConstants.StoreP2PMessage,durable = "true")
             ),concurrency = "1"
     )
     public void onChatMessage(@Payload Message message,
@@ -55,18 +48,10 @@ public class GroupChatOperateReceiver {
         Long deliveryTag = (Long) headers.get(AmqpHeaders.DELIVERY_TAG);
         try {
             JSONObject jsonObject = JSON.parseObject(msg);
-            Integer command = jsonObject.getInteger("command");
-            if(command.equals(GroupEventCommand.MSG_GROUP.getCommand())){
-                //处理消息
-                GroupChatMessageContent messageContent
-                        = jsonObject.toJavaObject(GroupChatMessageContent.class);
-//                p2PMessageService.process(messageContent);
-                groupMessageService.process(messageContent);
-            }else if (command.equals(GroupEventCommand.MSG_GROUP_READED.getCommand())) {
-                MessageReadedContent messageReaded = JSON.parseObject(msg, new TypeReference<MessageReadedContent>() {
-                }.getType());
-                messageSyncService.groupReadMark(messageReaded);
-            }
+            DoStoreP2PMessageDto doStoreP2PMessageDto = jsonObject.toJavaObject(DoStoreP2PMessageDto.class);
+            ImMessageBodyEntity messageBody = jsonObject.getObject("messageBody", ImMessageBodyEntity.class);
+            doStoreP2PMessageDto.setImMessageBodyEntity(messageBody);
+            storeMessageService.doStoreP2PMessage(doStoreP2PMessageDto);
             channel.basicAck(deliveryTag, false);
         }catch (Exception e){
             logger.error("处理消息出现异常：{}", e.getMessage());
