@@ -50,8 +50,8 @@ public class BootstrapConfig {
          * brokerId
          */
         private Integer brokerId;
-//
-//        private String logicUrl;
+
+        private String logicUrl;
 
     }
 

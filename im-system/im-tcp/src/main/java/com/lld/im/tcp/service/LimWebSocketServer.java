@@ -1,6 +1,9 @@
 package com.lld.im.tcp.service;
 
+import com.lld.im.codec.WebSocketMessageDecoder;
+import com.lld.im.codec.WebSocketMessageEncoder;
 import com.lld.im.codec.config.BootstrapConfig;
+import com.lld.im.tcp.handler.NettyServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -28,12 +31,12 @@ public class LimWebSocketServer {
     NioEventLoopGroup subGroup;
     ServerBootstrap server;
 
-    public LimWebSocketServer(BootstrapConfig.TcpConfig config){
-        this.config  = config;
-         mainGroup = new NioEventLoopGroup();
+    public LimWebSocketServer(BootstrapConfig.TcpConfig config) {
+        this.config = config;
+        mainGroup = new NioEventLoopGroup();
         subGroup = new NioEventLoopGroup();
-         server = new ServerBootstrap();
-        server.group(mainGroup,subGroup)
+        server = new ServerBootstrap();
+        server.group(mainGroup, subGroup)
                 .channel(NioServerSocketChannel.class)
                 .option(ChannelOption.SO_BACKLOG, 10240) // 服务端可连接队列大小
                 .option(ChannelOption.SO_REUSEADDR, true) // 参数表示允许重复使用本地地址和端口
@@ -56,10 +59,11 @@ public class LimWebSocketServer {
                          * 对于websocket来讲，都是以frames进行传输的，不同的数据类型对应的frames也不同
                          */
                         pipeline.addLast(new WebSocketServerProtocolHandler("/ws"));
+                        pipeline.addLast(new WebSocketMessageDecoder());
+                        pipeline.addLast(new WebSocketMessageEncoder());
+                        pipeline.addLast(new NettyServerHandler(config.getBrokerId()));
                     }
                 });
-
-
     }
 
     public void start()

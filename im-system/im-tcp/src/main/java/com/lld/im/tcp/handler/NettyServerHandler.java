@@ -9,6 +9,7 @@ import com.lld.im.common.enums.ImConnectStatusEnum;
 import com.lld.im.common.enums.command.SystemCommand;
 import com.lld.im.common.model.UserClientDto;
 import com.lld.im.common.model.UserSession;
+import com.lld.im.tcp.publish.MqMessageProducer;
 import com.lld.im.tcp.redis.RedisManger;
 import com.lld.im.tcp.service.LimServer;
 import com.lld.im.tcp.utils.SessionSocketHolder;
@@ -92,6 +93,8 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
         } else if (command== SystemCommand.PING.getCommand()) {
            channelHandlerContext.channel().attr(AttributeKey.valueOf(Constants.ReadTime)).set(System.currentTimeMillis());
 
+        }else {
+            MqMessageProducer.sendMessage(message,command);
         }
     }
 }

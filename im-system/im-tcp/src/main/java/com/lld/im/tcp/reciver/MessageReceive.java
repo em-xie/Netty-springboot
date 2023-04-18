@@ -32,7 +32,7 @@ public class MessageReceive{
                     true, false, false, null
             );
             channel.queueBind(Constants.RabbitConstants.MessageService2Im + brokerId,
-                    Constants.RabbitConstants.MessageService2Im, brokerId);
+                    Constants.RabbitConstants.MessageService2Im,brokerId);
 
             channel.basicConsume(Constants.RabbitConstants
                             .MessageService2Im + brokerId, false,

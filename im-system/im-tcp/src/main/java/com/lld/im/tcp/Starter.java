@@ -38,7 +38,7 @@ public class Starter {
             new LimWebSocketServer(bootstrapConfig.getLim()).start();
             RedisManger.init(bootstrapConfig);
             MqFactory.init(bootstrapConfig.getLim().getRabbitmq());
-            MessageReceive.init(bootstrapConfig.getLim().getBrokerId()+" ");
+            MessageReceive.init(bootstrapConfig.getLim().getBrokerId()+"");
             registerZK(bootstrapConfig);
         }catch (Exception e){
             e.printStackTrace();

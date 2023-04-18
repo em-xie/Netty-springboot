@@ -42,9 +42,9 @@ public class LimServer {
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ch.pipeline().addLast(new MessageDecoder());
                         ch.pipeline().addLast(new MessageEncoder());
-                        ch.pipeline().addLast(new IdleStateHandler(
-                                0,0,
-                                1));
+//                        ch.pipeline().addLast(new IdleStateHandler(
+//                                0,0,
+//                                1));
                         ch.pipeline().addLast(new HeartBeatHandler(config.getHeartBeatTime()));
                         ch.pipeline().addLast(new NettyServerHandler(config.getBrokerId()));
                     }
