@@ -5,6 +5,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.lld.im.codec.pack.LoginPack;
 import com.lld.im.codec.pack.message.ChatMessageAck;
+import com.lld.im.codec.pack.user.LoginAckPack;
+import com.lld.im.codec.pack.user.UserStatusChangeNotifyPack;
 import com.lld.im.codec.proto.Message;
 import com.lld.im.codec.proto.MessagePack;
 import com.lld.im.common.ResponseVO;
@@ -13,6 +15,7 @@ import com.lld.im.common.enums.ImConnectStatusEnum;
 import com.lld.im.common.enums.command.GroupEventCommand;
 import com.lld.im.common.enums.command.MessageCommand;
 import com.lld.im.common.enums.command.SystemCommand;
+import com.lld.im.common.enums.command.UserEventCommand;
 import com.lld.im.common.model.UserClientDto;
 import com.lld.im.common.model.UserSession;
 import com.lld.im.common.model.message.CheckSendMessageReq;
@@ -107,6 +110,23 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             RTopic topic = redissonClient.getTopic(Constants.RedisConstants.UserLoginChannel);
             topic.publish(JSONObject.toJSONString(userClientDto));
 
+
+            UserStatusChangeNotifyPack userStatusChangeNotifyPack = new UserStatusChangeNotifyPack();
+            userStatusChangeNotifyPack.setAppId(message.getMessageHeader().getAppId());
+            userStatusChangeNotifyPack.setUserId(loginPack.getUserId());
+            userStatusChangeNotifyPack.setStatus(ImConnectStatusEnum.ONLINE_STATUS.getCode());
+            MqMessageProducer.sendMessage(userStatusChangeNotifyPack,message.getMessageHeader(), UserEventCommand.USER_ONLINE_STATUS_CHANGE.getCommand());
+
+
+
+            MessagePack<LoginAckPack> loginSuccess = new MessagePack<>();
+            LoginAckPack loginAckPack = new LoginAckPack();
+            loginAckPack.setUserId(loginPack.getUserId());
+            loginSuccess.setCommand(SystemCommand.LOGINACK.getCommand());
+            loginSuccess.setData(loginAckPack);
+            loginSuccess.setImei(message.getMessageHeader().getImei());
+            loginSuccess.setAppId(message.getMessageHeader().getAppId());
+            channelHandlerContext.channel().writeAndFlush(loginSuccess);
         } else if (command== SystemCommand.LOGOUT.getCommand()) {
             //删除session 与 redis
             SessionSocketHolder.removeUserSession((NioSocketChannel) channelHandlerContext.channel() );
