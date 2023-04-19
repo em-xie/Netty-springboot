@@ -1,0 +1,85 @@
+{
+	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+		{
+			"path": "pages/common/login/login",
+			"style": {}
+		}, {
+			"path": "pages/tabbar/index/index",
+			"style": {
+				"navigationBarTitleText": "uni-app"
+			}
+		}, {
+			"path": "pages/tabbar/mail/mail",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+
+		}, {
+			"path": "pages/chat/chat/chat",
+			"style": {}
+		}, {
+			"path": "pages/tabbar/find/find",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+
+		}, {
+			"path": "pages/tabbar/my/my",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+
+		}, {
+			"path": "pages/my/userinfo/userinfo",
+			"style": {}
+		}, {
+			"path": "pages/my/setting/setting",
+			"style": {}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "l-im-app",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8",
+		"app-plus": {
+			"titleNView": false,
+			"scrollIndicator": "none"
+		}
+	},
+	"tabBar": {
+		"color": "#000000",
+		"selectedColor": "#06a1c0",
+		"borderStyle": "black",
+		"backgroundColor": "#F7F7F7",
+		"list": [{
+				"iconPath": "static/tabbar/index.png",
+				"selectedIconPath": "static/tabbar/index-select.png",
+				"pagePath": "pages/tabbar/index/index",
+				"text": "首页"
+			},
+			{
+				"iconPath": "static/tabbar/mail.png",
+				"selectedIconPath": "static/tabbar/mail-select.png",
+				"pagePath": "pages/tabbar/mail/mail",
+				"text": "通讯录"
+			},
+			{
+				"iconPath": "static/tabbar/find.png",
+				"selectedIconPath": "static/tabbar/find-select.png",
+				"pagePath": "pages/tabbar/find/find",
+				"text": "发现"
+			},
+			{
+				"iconPath": "static/tabbar/my.png",
+				"selectedIconPath": "static/tabbar/my-select.png",
+				"pagePath": "pages/tabbar/my/my",
+				"text": "我的"
+			}
+		]
+	},
+	"uniIdRouter": {}
+}

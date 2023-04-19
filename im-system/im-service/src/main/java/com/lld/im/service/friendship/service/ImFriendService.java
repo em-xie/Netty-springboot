@@ -2,6 +2,7 @@ package com.lld.im.service.friendship.service;
 
 import com.lld.im.common.ResponseVO;
 import com.lld.im.common.model.RequestBase;
+import com.lld.im.common.model.SyncReq;
 import com.lld.im.service.friendship.model.req.*;
 
 import java.util.List;
@@ -37,4 +38,7 @@ public interface ImFriendService {
 
     public ResponseVO checkBlck(CheckFriendShipReq req);
 
+    public ResponseVO syncFriendshipList(SyncReq req);
+
+    public List<String> getAllFriendId(String userId, Integer appId);
 }

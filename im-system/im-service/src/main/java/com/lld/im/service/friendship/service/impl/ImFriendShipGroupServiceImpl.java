@@ -17,8 +17,10 @@ import com.lld.im.service.friendship.model.req.AddFriendShipGroupReq;
 import com.lld.im.service.friendship.model.req.DeleteFriendShipGroupReq;
 import com.lld.im.service.friendship.service.ImFriendShipGroupMemberService;
 import com.lld.im.service.friendship.service.ImFriendShipGroupService;
+import com.lld.im.service.seq.RedisSeq;
 import com.lld.im.service.user.service.ImUserService;
 import com.lld.im.service.utils.MessageProducer;
+import com.lld.im.service.utils.WriteUserSeq;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,12 @@ public class ImFriendShipGroupServiceImpl implements ImFriendShipGroupService {
 
     @Autowired
     MessageProducer messageProducer;
+
+    @Autowired
+    RedisSeq redisSeq;
+
+    @Autowired
+    WriteUserSeq writeUserSeq;
     @Override
     @Transactional
     public ResponseVO addGroup(AddFriendShipGroupReq req) {
@@ -53,10 +61,12 @@ public class ImFriendShipGroupServiceImpl implements ImFriendShipGroupService {
         if (entity != null) {
             return ResponseVO.errorResponse(FriendShipErrorCode.FRIEND_SHIP_GROUP_IS_EXIST);
         }
+        long seq = redisSeq.doGetSeq(req.getAppId() + ":" + Constants.SeqConstants.FriendshipGroup);
 
         //写入db
         ImFriendShipGroupEntity insert = new ImFriendShipGroupEntity();
         insert.setAppId(req.getAppId());
+        insert.setSequence(seq);
         insert.setCreateTime(System.currentTimeMillis());
         insert.setDelFlag(DelFlagEnum.NORMAL.getCode());
         insert.setGroupName(req.getGroupName());
@@ -73,6 +83,7 @@ public class ImFriendShipGroupServiceImpl implements ImFriendShipGroupService {
                 addFriendShipGroupMemberReq.setFromId(req.getFromId());
                 addFriendShipGroupMemberReq.setGroupName(req.getGroupName());
                 addFriendShipGroupMemberReq.setToIds(req.getToIds());
+
                 addFriendShipGroupMemberReq.setAppId(req.getAppId());
                 imFriendShipGroupMemberService.addGroupMember(addFriendShipGroupMemberReq);
                 return ResponseVO.successResponse();
@@ -85,11 +96,11 @@ public class ImFriendShipGroupServiceImpl implements ImFriendShipGroupService {
         AddFriendGroupPack addFriendGropPack = new AddFriendGroupPack();
         addFriendGropPack.setFromId(req.getFromId());
         addFriendGropPack.setGroupName(req.getGroupName());
-//        addFriendGropPack.setSequence(seq);
+        addFriendGropPack.setSequence(seq);
         messageProducer.sendToUserExceptClient(req.getFromId(), FriendshipEventCommand.FRIEND_GROUP_ADD,
                 addFriendGropPack,new ClientInfo(req.getAppId(),req.getClientType(),req.getImei()));
         //写入seq
-//        writeUserSeq.writeUserSeq(req.getAppId(), req.getFromId(), Constants.SeqConstants.FriendshipGroup, seq);
+        writeUserSeq.writeUserSeq(req.getAppId(), req.getFromId(), Constants.SeqConstants.FriendshipGroup, seq);
         return ResponseVO.successResponse();
     }
 
@@ -107,8 +118,11 @@ public class ImFriendShipGroupServiceImpl implements ImFriendShipGroupService {
             ImFriendShipGroupEntity entity = imFriendShipGroupMapper.selectOne(query);
 
             if (entity != null) {
+                long seq = redisSeq.doGetSeq(req.getAppId() + ":" + Constants.SeqConstants.FriendshipGroup);
+
                 ImFriendShipGroupEntity update = new ImFriendShipGroupEntity();
                 update.setGroupId(entity.getGroupId());
+                update.setSequence(seq);
                 update.setDelFlag(DelFlagEnum.DELETE.getCode());
                 imFriendShipGroupMapper.updateById(update);
                 imFriendShipGroupMemberService.clearGroupMember(entity.getGroupId());
@@ -116,12 +130,12 @@ public class ImFriendShipGroupServiceImpl implements ImFriendShipGroupService {
                 DeleteFriendGroupPack deleteFriendGroupPack = new DeleteFriendGroupPack();
                 deleteFriendGroupPack.setFromId(req.getFromId());
                 deleteFriendGroupPack.setGroupName(groupName);
-                //deleteFriendGroupPack.setSequence(seq);
+                deleteFriendGroupPack.setSequence(seq);
                 //TCP通知
                 messageProducer.sendToUserExceptClient(req.getFromId(), FriendshipEventCommand.FRIEND_GROUP_DELETE,
                         deleteFriendGroupPack,new ClientInfo(req.getAppId(),req.getClientType(),req.getImei()));
                 //写入seq
-               // writeUserSeq.writeUserSeq(req.getAppId(), req.getFromId(), Constants.SeqConstants.FriendshipGroup, seq);
+                writeUserSeq.writeUserSeq(req.getAppId(), req.getFromId(), Constants.SeqConstants.FriendshipGroup, seq);
             }
         }
         return ResponseVO.successResponse();
@@ -140,6 +154,24 @@ public class ImFriendShipGroupServiceImpl implements ImFriendShipGroupService {
             return ResponseVO.errorResponse(FriendShipErrorCode.FRIEND_SHIP_GROUP_IS_NOT_EXIST);
         }
         return ResponseVO.successResponse(entity);
+    }
+
+    @Override
+    public Long updateSeq(String fromId, String groupName, Integer appId) {
+        QueryWrapper<ImFriendShipGroupEntity> query = new QueryWrapper<>();
+        query.eq("group_name", groupName);
+        query.eq("app_id", appId);
+        query.eq("from_id", fromId);
+
+        ImFriendShipGroupEntity entity = imFriendShipGroupMapper.selectOne(query);
+
+        long seq = redisSeq.doGetSeq(appId + ":" + Constants.SeqConstants.FriendshipGroup);
+
+        ImFriendShipGroupEntity group = new ImFriendShipGroupEntity();
+        group.setGroupId(entity.getGroupId());
+        group.setSequence(seq);
+        imFriendShipGroupMapper.updateById(group);
+        return seq;
     }
 
 }

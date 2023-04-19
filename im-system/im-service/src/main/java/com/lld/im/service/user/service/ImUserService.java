@@ -24,4 +24,6 @@ public interface ImUserService {
 
 
     public ResponseVO login();
+
+    ResponseVO getUserSequence(GetUserSequenceReq req);
 }

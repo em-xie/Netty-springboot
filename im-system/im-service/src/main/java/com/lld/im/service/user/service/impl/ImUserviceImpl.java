@@ -21,6 +21,7 @@ import com.lld.im.service.utils.CallbackService;
 import com.lld.im.service.utils.MessageProducer;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +53,9 @@ public class ImUserviceImpl implements ImUserService {
 
     @Autowired
     MessageProducer messageProducer;
+
+    @Autowired
+    StringRedisTemplate stringRedisTemplate;
 
     @Override
     public ResponseVO importUser(ImportUserReq req) {
@@ -198,6 +202,15 @@ public class ImUserviceImpl implements ImUserService {
     @Override
     public ResponseVO login() {
         return ResponseVO.successResponse();
+    }
+
+
+    @Override
+    public ResponseVO getUserSequence(GetUserSequenceReq req) {
+        Map<Object, Object> map = stringRedisTemplate.opsForHash().entries(req.getAppId() + ":" + Constants.RedisConstants.SeqPrefix + ":" + req.getUserId());
+        Long groupSeq = imGroupService.getUserGroupMaxSeq(req.getUserId(),req.getAppId());
+        map.put(Constants.SeqConstants.Group,groupSeq);
+        return ResponseVO.successResponse(map);
     }
 
 }

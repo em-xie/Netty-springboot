@@ -3,6 +3,7 @@ package com.lld.im.service.friendship.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.lld.im.codec.pack.friendship.AddFriendGroupMemberPack;
 import com.lld.im.codec.pack.friendship.DeleteFriendGroupMemberPack;
+import com.lld.im.codec.proto.Message;
 import com.lld.im.common.ResponseVO;
 import com.lld.im.common.enums.command.FriendshipEventCommand;
 import com.lld.im.common.model.ClientInfo;
@@ -67,12 +68,12 @@ public class ImFriendShipGroupMemberServiceImpl
             }
         }
 
-        //Long seq = imFriendShipGroupService.updateSeq(req.getFromId(), req.getGroupName(), req.getAppId());
+        Long seq = imFriendShipGroupService.updateSeq(req.getFromId(), req.getGroupName(), req.getAppId());
         AddFriendGroupMemberPack pack = new AddFriendGroupMemberPack();
         pack.setFromId(req.getFromId());
         pack.setGroupName(req.getGroupName());
         pack.setToIds(successId);
-        //pack.setSequence(seq);
+        pack.setSequence(seq);
         messageProducer.sendToUserExceptClient(req.getFromId(), FriendshipEventCommand.FRIEND_GROUP_MEMBER_ADD,
                 pack,new ClientInfo(req.getAppId(),req.getClientType(),req.getImei()));
 
@@ -87,26 +88,26 @@ public class ImFriendShipGroupMemberServiceImpl
             return group;
         }
 
-        ArrayList list = new ArrayList();
+        List<String> successId = new ArrayList<>();
         for (String toId : req.getToIds()) {
             ResponseVO<ImUserDataEntity> singleUserInfo = imUserService.getSingleUserInfo(toId, req.getAppId());
             if(singleUserInfo.isOk()){
                 int i = deleteGroupMember(group.getData().getGroupId(), toId);
                 if(i == 1){
-                    list.add(toId);
+                    successId.add(toId);
                 }
             }
         }
 
-        //Long seq = imFriendShipGroupService.updateSeq(req.getFromId(), req.getGroupName(), req.getAppId());
+        Long seq = imFriendShipGroupService.updateSeq(req.getFromId(), req.getGroupName(), req.getAppId());
         DeleteFriendGroupMemberPack pack = new DeleteFriendGroupMemberPack();
         pack.setFromId(req.getFromId());
         pack.setGroupName(req.getGroupName());
-        pack.setToIds(list);
-       // pack.setSequence(seq);
+        pack.setToIds(successId);
+        pack.setSequence(seq);
         messageProducer.sendToUserExceptClient(req.getFromId(), FriendshipEventCommand.FRIEND_GROUP_MEMBER_DELETE,
                 pack,new ClientInfo(req.getAppId(),req.getClientType(),req.getImei()));
-        return ResponseVO.successResponse(list);
+        return ResponseVO.successResponse(successId);
     }
 
     @Override
@@ -114,6 +115,7 @@ public class ImFriendShipGroupMemberServiceImpl
         ImFriendShipGroupMemberEntity imFriendShipGroupMemberEntity = new ImFriendShipGroupMemberEntity();
         imFriendShipGroupMemberEntity.setGroupId(groupId);
         imFriendShipGroupMemberEntity.setToId(toId);
+
         try {
             int insert = imFriendShipGroupMemberMapper.insert(imFriendShipGroupMemberEntity);
             return insert;

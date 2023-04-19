@@ -1,6 +1,7 @@
 package com.lld.im.service.friendship.controller;
 
 import com.lld.im.common.ResponseVO;
+import com.lld.im.common.model.SyncReq;
 import com.lld.im.service.friendship.model.req.*;
 import com.lld.im.service.friendship.service.ImFriendService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,6 +81,14 @@ public class ImFriendShipController {
     public ResponseVO checkBlck(@RequestBody @Validated CheckFriendShipReq req, Integer appId){
         req.setAppId(appId);
         return imFriendShipService.checkBlck(req);
+    }
+
+
+    @RequestMapping("/syncFriendshipList")
+    public ResponseVO syncFriendshipList(@RequestBody @Validated
+                                         SyncReq req, Integer appId){
+        req.setAppId(appId);
+        return imFriendShipService.syncFriendshipList(req);
     }
 
 

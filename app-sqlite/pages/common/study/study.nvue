@@ -1,0 +1,92 @@
+<template>
+	<view>
+
+		<view>
+			<view class="flex align-center justify-center" style="height: 350rpx;">
+				<text style="font-size: 50rpx;">lld-im</text>
+			</view>
+			<view class="p-3 flex align-center justify-center">
+				<view class="main-bg-color rounded p-3 flex align-center justify-center flex-1"
+					hover-class="main-bg-hover-color" @click="getAllFriend()">
+					<text class="text-white font-md">拉取所有好友资料</text>
+				</view>
+			</view>
+
+			<view class="p-3 flex align-center justify-center">
+				<view class="main-bg-color rounded p-3 flex align-center justify-center flex-1"
+					hover-class="main-bg-hover-color" @click="getSyncFriend()">
+					<text class="text-white font-md">增量拉取好友资料好友资料</text>
+				</view>
+			</view>
+
+			<view class="p-3 flex align-center justify-center">
+				<view class="main-bg-color rounded p-3 flex align-center justify-center flex-1"
+					hover-class="main-bg-hover-color" @click="clearAllFriend(seq)">
+					<text class="text-white font-md">清空所有好友数据</text>
+				</view>
+			</view>
+		</view>
+
+	</view>
+</template>
+
+<script>
+	import $H from '@/common/lib/request.js';
+	import sqlite from "@/store/modules/sql.js"
+
+	export default {
+		data() {
+			return {
+			}
+		},
+		created() {
+			console.log("createTable")
+
+		},
+		methods: {
+			getAllFriend() {
+				$H.post('/friendship/getAllFriendShip', {
+					appId: 10000,
+					fromId: "lld"
+				}, {
+					token: false
+				}).then(res => {
+					sqlite.bathAddFriend(res.data);
+				})
+			},
+			getSyncFriend() {
+				sqlite.getFriendMaxSeq("lld",10000).then(res => {
+					var maxSeq = res[0].maxSeq;
+					$H.post('/friendship/syncFriendShipList', {
+						appId: 10000,
+						operater: "lld",
+						lastSequence:maxSeq,
+						maxLimit:100
+					}, {
+						token: false
+					}).then(res => {
+						console.log(res)
+					})
+				});
+			},
+			clearAllFriend() {
+				sqlite.clearAllFriend();
+			}
+		},
+		computed: {
+
+		},
+		onShow() {
+			if (!sqlite.isOpen("main", "/sdcard/Pictures/sql.db")) {
+				sqlite.openSqlite();
+			}
+			sqlite.createTable().then(res => {
+				console.log(res)
+			});
+		}
+	}
+</script>
+
+<style>
+
+</style>
