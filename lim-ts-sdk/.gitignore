@@ -1,0 +1,7 @@
+node_modules
+/dist
+*.iml
+.idea
+lim-sdk.js
+lim-sdk.js.map
+/yarn-error.log

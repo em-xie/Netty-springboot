@@ -68,7 +68,7 @@ public class LoginServiceImpl implements LoginService {
     /**
      * @description 注册我们的服务并向im导入用户
      * @author chackylee
-     * @param [req]
+     * @param req
      */
     @Override
     @Transactional
