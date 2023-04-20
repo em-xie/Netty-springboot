@@ -2,11 +2,13 @@ package com.lld.im.service.message.mq;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import com.lld.im.common.constant.Constants;
 import com.lld.im.common.enums.command.MessageCommand;
 import com.lld.im.common.model.message.MessageContent;
 import com.lld.im.common.model.message.MessageReadedContent;
 import com.lld.im.common.model.message.MessageReciveAckContent;
+import com.lld.im.common.model.message.RecallMessageContent;
 import com.lld.im.service.message.service.MessageSyncService;
 import com.lld.im.service.message.service.P2PMessageService;
 import com.rabbitmq.client.Channel;
@@ -24,6 +26,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @作者：xie
@@ -57,7 +60,7 @@ public class ChatOperateReceiver {
                 MessageContent messageContent
                         = jsonObject.toJavaObject(MessageContent.class);
                 p2PMessageService.process(messageContent);
-                channel.basicAck(deliveryTag, false);
+
             }else if(command.equals(MessageCommand.MSG_RECIVE_ACK.getCommand())){
                 //消息接收确认
                 MessageReciveAckContent messageContent
@@ -68,7 +71,13 @@ public class ChatOperateReceiver {
                 MessageReadedContent messageContent
                         = jsonObject.toJavaObject(MessageReadedContent.class);
                 messageSyncService.readMark(messageContent);
+            }else if (Objects.equals(command, MessageCommand.MSG_RECALL.getCommand())) {
+//                撤回消息
+                RecallMessageContent messageContent = JSON.parseObject(msg, new TypeReference<RecallMessageContent>() {
+                }.getType());
+                messageSyncService.recallMessage(messageContent);
             }
+            channel.basicNack(deliveryTag, false, false);
         }catch (Exception e){
             logger.error("处理消息出现异常：{}", e.getMessage());
             logger.error("RMQ_CHAT_TRAN_ERROR", e);
